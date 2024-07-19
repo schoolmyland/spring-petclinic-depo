@@ -16,8 +16,8 @@ fi
 if [ -n "$RESTARTS" ]; then
     echo "$RESTARTS" | awk '{print "Pod "$1" has "$3" restarts!"}'
     RESTART_PODS=$(echo "$RESTARTS" | awk '{print $1}')
-    logFile="/opt/logs/$POD-$(date +"%Y-%m-%d-%H-%M").log"
     for POD in $RESTART_PODS; do
+        logFile="/opt/jenkins/logs/"$POD"-$(date +"%Y-%m-%d-%H-%M").log"
         echo "Logs for pod $POD :"
         kubectl logs $POD -n $NAMESPACE --previous > $logFile
         cat $logFile | grep 'Caused'

@@ -1,5 +1,5 @@
 #!/bin/bash
-NAMESPACE="developpement"
+NAMESPACE=$1
 
 PODS=$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name,:status.phase,:status.containerStatuses[*].restartCount,:status.conditions[?(@.type=='Ready')].status,:status.containerStatuses[*].state.waiting.reason,:status.containerStatuses[*].state.terminated.reason")
 

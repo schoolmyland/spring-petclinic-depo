@@ -1,4 +1,4 @@
-namespace: developpement
+namespace: prod-nomClient
 
 petclinic:
   dbname: service_instance_db

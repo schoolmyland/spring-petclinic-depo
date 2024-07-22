@@ -1,0 +1,34 @@
+namespace: developpement
+
+petclinic:
+  dbname: service_instance_db
+  dbhost: mysql
+  dbuser: pet-clinic-dbuser
+  bdpwd : bWRwLWJkZC1leGVtcGxl
+  loglevel: INFO
+
+gatw:
+    nodePort: 30105
+    repo: poissonchat13
+    pull: Always
+    docker_tag : latest
+
+cust:
+    repo: poissonchat13
+    pull: Always
+    docker_tag : latest
+
+vist:
+    repo: poissonchat13
+    pull: Always
+    docker_tag : latest
+
+vets:
+    repo: poissonchat13
+    pull: Always
+    docker_tag : latest
+
+prom:
+    nodePort: 30090
+
+

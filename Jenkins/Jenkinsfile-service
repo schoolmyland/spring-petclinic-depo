@@ -46,7 +46,13 @@ pipeline {
         stage('Test des pods') {
             steps {
                 script {
-                sh '$JENK_TOOLBOX/ctrl/checkpod.sh developpement'
+                    sh '''
+                    rm -Rf .kube
+                    mkdir .kube
+                    ls
+                    cat $KUBECONFIG > .kube/config
+                    helm uninstall petclinic-dev
+                    '''
                 }
             }
             post {

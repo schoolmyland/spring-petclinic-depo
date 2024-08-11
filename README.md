@@ -10,4 +10,4 @@ Into the directory Helm you will find the two helm chart, one use to deploy in p
 
 Into the directory Dockerfile you will find the evolution of the Dockerfile.
 
-Into the terraform directory I will put the terraform chart to build the VPC/EKS-cluster/EKS-Nodegroup/RDS with replica use to deploy two customers.
+Into the terraform directory I will put the terraform chart to build the VPC/EKS-cluster/EKS-Nodegroup/RDS use to deploy two customers.

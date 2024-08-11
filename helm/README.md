@@ -1,14 +1,15 @@
-# spring-petclinic-depo
+# Helm Charts used in the project
 DISCLAMER : this is not the official repo but a student project, here is the official repository of  <a href="//github.com/spring-petclinic/spring-petclinic-cloud/">spring-petclinic-cloud</a>
 
+Here you will find the different Helm chart used into the project.
 
-This repo allow me to share different ressource about the realisation of the project Petclinic, in each repo you will find a README.md file to explain more about each composant of the project.
+petclinic-dev : It's the first helm chart made with variables, it feat the need for the test environment. It has been deployed on the Jenkins VPS for the local installation of the application petclinic.
 
+petclinic-prod-https :  It is the helm chart used to deploy the production environment. The deployement.yaml is adapted to target nodeGroup of the EKS using node selector.
+Also the service.yaml use option to integrate the ACM certificate directly into the listeners of the ELB.
 
-Into the directory Jenkins, you will find the different Pipeline, script to assure that pipeline doesn't bother each other and the customer list exemple use to launch parallel jobs.
-
-Into the directory Helm you will find the two helm chart, one use to deploy in production and the other in the developpement environnement.
-
-Into the directory Dockerfile you will find the evolution of the Dockerfile.
-
-Into the terraform directory I will put the terraform chart to build the VPC/EKS-cluster/EKS-Nodegroup/RDS with replica use to deploy two customer. 
+Prometheus-install-pack : This directory doesn't contain directly a helm chart, but an installation script that deploy the prometheus-community/kube-prometheus-stack and customize it to our needs.
+It's made to set-up SMTP and Database servers, and initiate a different password than the default one used in Grafana admin account. 
+Also, the script build target scrap config file to add the Petclinic microservices as target for Prometheus, before using the script you have to modify the file Front.yaml to add the arn of the certificate generated with ACM.
+The script allows us to use the node selector to deploy the pod on the groupNode Monitoring. The front.yaml will be deployed on the Monitorfront groupeNode, it's only a reverse proxy for the Grafana webpage.
+The fronttarget.yaml is a reverse proxy to see the target on Prometheus, it's a tool to check the installation but the pod is not meant to stay on the environment.

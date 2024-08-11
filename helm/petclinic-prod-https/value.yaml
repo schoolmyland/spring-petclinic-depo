@@ -1,0 +1,32 @@
+namespace: developpement
+fulldomain : "example.petclinic-soutenance.com"
+certarn : "arncert"
+
+petclinic:
+  dbname: service_instance_db
+  dbhost: mysql
+  dbuser: pet-clinic-dbuser
+  bdpwd : dummyPassword
+  loglevel: INFO
+
+gatw:
+    nodePort: 30105
+    repo: poissonchat13
+    pull: Always
+    docker_tag : latest
+    img : spring-petclinic-api-gateway
+
+cust:
+    repo: poissonchat13
+    pull: Always
+    docker_tag : latest
+
+vist:
+    repo: poissonchat13
+    pull: Always
+    docker_tag : latest
+
+vets:
+    repo: poissonchat13
+    pull: Always
+    docker_tag : latest

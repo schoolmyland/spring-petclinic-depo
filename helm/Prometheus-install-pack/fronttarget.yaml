@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf-t
+  namespace: monitoring
+data:
+  default.conf: |
+    upstream grafana {
+        server prometheus-operated:9090;
+    }
+
+    server {
+        listen 80;
+        server_name prometheus-operated;
+
+        location / {
+            proxy_pass http://prometheus-operated:9090/;
+            proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+            proxy_redirect off;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            access_log /var/log/nginx/access.log;
+            error_log /var/log/nginx/error.log debug;
+        }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-t
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: nginx-t
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-t
+    spec:
+      nodeSelector:
+        nodetype: monitorfront
+      containers:
+      - name: nginx-t
+        image: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-conf-t
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+          readOnly: true
+      volumes:
+      - name: nginx-conf-t
+        configMap:
+          name: nginx-conf-t
+          items:
+          - key: default.conf
+            path: default.conf
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-t
+  namespace: monitoring
+  annotations:
+spec:
+  type: LoadBalancer
+  ports:
+  - name: "http"
+    port: 80
+    targetPort: 80
+  selector:
+    app: nginx-t
+

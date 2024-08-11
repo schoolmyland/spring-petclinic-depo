@@ -1,6 +1,4 @@
 # Helm Charts used in the project
-DISCLAMER : this is not the official repo but a student project, here is the official repository of  <a href="//github.com/spring-petclinic/spring-petclinic-cloud/">spring-petclinic-cloud</a>
-
 Here you will find the different Helm chart used into the project.
 
 petclinic-dev : It's the first helm chart made with variables, it feat the need for the test environment. It has been deployed on the Jenkins VPS for the local installation of the application petclinic.

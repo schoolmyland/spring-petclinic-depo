@@ -1,5 +1,5 @@
 # spring-petclinic-depo
-DISCLAMER : this is not the official repo but a student project, here is the official repository of spring-petclinic-cloud
+<b>DISCLAMER :</b> this is not the official repo but a student project, here is the official repository of spring-petclinic-cloud
 
 
 This repo allows me to share different resource about the realisation of the project Petclinic, in each repo you will find a README.md file to explain more about each component of the project.

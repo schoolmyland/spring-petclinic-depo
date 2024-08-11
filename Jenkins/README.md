@@ -39,13 +39,13 @@ Exemple of the csv file with the parameters used by the Jenkins child api-gatewa
 
 <b>Jenkinsfile-gateway :</b>
 
-![gatewayPipeline](img/ServicePipeline.png)
+![gatewayPipeline](img/apiGatewayPipeline.png)
 
 <b>Jenkinsfile-service : </b>
 
-
+![servicePipeline](img/ServicePipeline.png)
 
 <b>Jenkinsfile-child-gateway :</b>
 
-
+![gatewayPipeline](img/apiGtwClientPipeline.png)
 

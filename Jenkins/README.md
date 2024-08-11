@@ -39,7 +39,7 @@ Exemple of the csv file with the parameters used by the Jenkins child api-gatewa
 
 <b>Jenkinsfile-gateway :</b>
 
-
+![gatewayPipeline](Jenkins/img/ServicePipeline.png)
 
 <b>Jenkinsfile-service : </b>
 

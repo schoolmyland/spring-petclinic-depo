@@ -14,6 +14,7 @@ pipeline {
                     env.JMETER_TAG = splitParts[0]
                     env.DOCKER_IMAGE = splitParts[1]
                     env.SERVICE_NAME =  env.DOCKER_IMAGE.replaceFirst(prefix, '')
+		    env.CSV_FILE = "${JENK_TOOLBOX}/custom/client-list.csv"
                 }
             }
         }
@@ -38,20 +39,29 @@ pipeline {
                 mkdir .kube
                 ls
                 cat $KUBECONFIG > .kube/config
-                helm install petclinic-dev petclinic-dev --values=./petclinic-dev/value.yaml --set $JMETER_TAG.repo=localhost:5000 --set petclinic.bdpwd=$BDD_PASS
+                helm install petclinic-dev petclinic-dev --values=./petclinic-dev/value.yaml --set $JMETER_TAG.repo=localhost:5000 --set petclinic.bdpwd=$BDD_PASS --kubeconfig .kube/config
                 sleep 180 
                 '''
             }
         }
-        stage('Test Acceptance') {
+        stage('Test des pods') {
             steps {
                 script {
-                sh '$JENK_TOOLBOX/ctrl/checkpod.sh developpement'
+		    sh """	
+                    $JENK_TOOLBOX/ctrl/checkpod.sh developpement
+		    curl localhost:30105
+		    """
                 }
             }
             post {
                 failure {
-                    sh 'helm uninstall petclinic-dev'
+                    sh '''
+                    rm -Rf .kube
+                    mkdir .kube
+                    ls
+                    cat $KUBECONFIG > .kube/config
+                    helm uninstall petclinic-dev 
+                    '''
                 }
             }
         }
@@ -112,14 +122,11 @@ pipeline {
                 mkdir .kube
                 ls
                 cat $KUBECONFIG > .kube/config
-                helm uninstall petclinic-dev
+                helm uninstall petclinic-dev 
                 '''
             }
         }
 	stage('Lancement des Personnalisations par clients') {
-    	environment {
-        	API_TOKEN = credentials("API_TOKEN")
-    	}
     	steps {
         	script {
             		def csvFile = readFile(env.CSV_FILE)

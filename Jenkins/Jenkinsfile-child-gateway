@@ -1,55 +1,79 @@
 pipeline {
     agent any
+
+    parameters {
+        string(name: 'DOCKER_TAG', defaultValue: '', description: 'Docker tag versioning')
+        string(name: 'CLIENT_NAME', defaultValue: '', description: 'Name of the client')
+        string(name: 'HEX_CODE', defaultValue: '', description: 'Hex code for the main color')
+        string(name: 'NODE_PORT', defaultValue: '', description: 'NodePort for the env')
+        string(name: 'DISPLAY_NAME', defaultValue: '', description: 'Display name for the build')
+        string(name: 'DESCRIPTION', defaultValue: '', description: 'Description for the build')
+    }
+    environment {
+        DOCKER_IMAGE = "spring-petclinic-api-gateway"
+    }
     stages {
-        stage('Mise en place des variables') {
+        stage('Parametrage') {
             steps {
                 script {
-                    VERSION_MAJEUR = sh(script: 'head -n 5 ./README.md | tail -n 1', returnStdout: true).trim()
-                    env.DOCKER_TAG = "${VERSION_MAJEUR}.${BUILD_ID}"
-                    def jobDirName = env.JOB_NAME
-                    def splitDir = jobDirName.split('/') 
-                    def jobName = splitDir[1]
-                    def splitParts = jobName.split('_')
-                    def prefix = "spring-petclinic-"
-                    env.JMETER_TAG = splitParts[0]
-                    env.DOCKER_IMAGE = splitParts[1]
-                    env.SERVICE_NAME =  env.DOCKER_IMAGE.replaceFirst(prefix, '')
-		    env.CSV_FILE = "${JENK_TOOLBOX}/custom/client-list.csv"
+                    currentBuild.displayName = params.DISPLAY_NAME
+                    currentBuild.description = params.DESCRIPTION
+					
                 }
             }
         }
-        stage('Docker Build Dev') {
+	stage('Recup css and transform') {
+    	    steps {
+        	script {
+                    sh """
+            	    cp ./src/main/less/header.less ${JENK_TOOLBOX}/custom/${params.CLIENT_NAME}/
+                    cp ./src/main/less/petclinic.less ${JENK_TOOLBOX}/custom/${params.CLIENT_NAME}/
+                    sed -i 's/#6db33f/${params.HEX_CODE}/g' ${JENK_TOOLBOX}/custom/${params.CLIENT_NAME}/header.less
+                    sed -i 's/#6db33f/${params.HEX_CODE}/g' ${JENK_TOOLBOX}/custom/${params.CLIENT_NAME}/petclinic.less
+            	    """
+                }
+    	    }
+	}
+        stage('Customisation build image') {
+            environment {
+                DOCKER_PASS = credentials("DOCKER_HUB_PASS")
+            }
             steps {
-                sh '''
-                docker build -t localhost:5000/$DOCKER_IMAGE:latest .
-                docker push localhost:5000/$DOCKER_IMAGE:latest 
-                '''
+                script {
+                    sh """
+                    cp $JENK_TOOLBOX/custom/${params.CLIENT_NAME}/img/* ./src/main/resources/static/images/
+                    cp $JENK_TOOLBOX/custom/${params.CLIENT_NAME}/*.less ./src/main/less/
+                    docker build -t localhost:5000/${DOCKER_IMAGE}:qa-${params.CLIENT_NAME} .
+                    docker push localhost:5000/${DOCKER_IMAGE}:qa-${params.CLIENT_NAME}
+                    sleep 10
+                    """
+                }
             }
         }
-        stage('Deploiement Env Dev') {
+        stage('Deploiement QA par client') {
             environment {
                 KUBECONFIG = credentials("confkub")
                 BDD_PASS = credentials("bdd_pass_dev")
             }
             steps {
-                sh '''
-                $JENK_TOOLBOX/ctrl/checkNamespaceUse.sh developpement
+                sh """
+                ${JENK_TOOLBOX}/ctrl/checkNamespaceUse.sh qa-${params.CLIENT_NAME}
                 cp -r ${JENK_TOOLBOX}/helm/* ./
                 rm -Rf .kube
                 mkdir .kube
                 ls
-                cat $KUBECONFIG > .kube/config
-                helm install petclinic-dev petclinic-dev --values=./petclinic-dev/value.yaml --set $JMETER_TAG.repo=localhost:5000 --set petclinic.bdpwd=$BDD_PASS --kubeconfig .kube/config
-                sleep 180 
-                '''
+                cat \$KUBECONFIG > .kube/config
+                helm install qa-${params.CLIENT_NAME} petclinic-dev --values=./petclinic-dev/value.yaml --set gatw.repo=localhost:5000 --set petclinic.bdpwd=\$BDD_PASS --set namespace=qa-${params.CLIENT_NAME} --set gatw.docker_tag=qa-${params.CLIENT_NAME} --set gatw.nodePort=${params.NODE_PORT}
+                sleep 120 
+                """
             }
         }
         stage('Test des pods') {
             steps {
                 script {
 		    sh """	
-                    $JENK_TOOLBOX/ctrl/checkpod.sh developpement
-		    curl localhost:30105
+                    $JENK_TOOLBOX/ctrl/checkpod.sh qa-${params.CLIENT_NAME}
+		    curl localhost:${params.NODE_PORT}
 		    """
                 }
             }
@@ -60,96 +84,59 @@ pipeline {
                     mkdir .kube
                     ls
                     cat $KUBECONFIG > .kube/config
-                    helm uninstall petclinic-dev 
+                    helm uninstall petclinic-dev
                     '''
                 }
             }
         }
-        stage('Test Performance Jmeter') {
-            steps {
-                sh '''
-                echo "$DOCKER_IMAGE:$DOCKER_TAG $(date +"%Y-%m-%d-%H-%M")" >> $JENK_TOOLBOX/logs/jmeter-commit-version.log
-                $JENK_TOOLBOX/apache-jmeter/bin/jmeter -n -t $JENK_TOOLBOX/test/petclinic_test_plan.jmx -l $JENK_TOOLBOX/test/petclinic_result_test.jtl
-                '''
-            }
-        }
-        stage('Build Jmeter pour report') {
+        stage('Demontage Env client') {
             environment {
-                API_TOKEN = credentials("API_TOKEN")
+                KUBECONFIG = credentials("confkub")
             }
             steps {
-                script {
-                    def displayName = "${JMETER_TAG}-${DOCKER_TAG}"
-                    def description = "Build trigger by the job ${JOB_NAME}  On the microservice ${DOCKER_IMAGE} "
-
-                    def buildResult = build job: 'jmeter-perf-central', 
-                                           wait: true, 
-                                           propagate: false
-
-                    def jobUrl = buildResult.getAbsoluteUrl()
-
-                    echo "Job URL: ${jobUrl}"
-                    
-                    sh """
-                    curl -X POST -u ${API_TOKEN} -F 'json={"displayName":"${displayName}","description":"${description}"}' \
-                    '${jobUrl}configSubmit'
-                    """
-                }
+                sh """
+                rm -Rf .kube
+                mkdir .kube
+                ls
+                cat ${KUBECONFIG} > .kube/config
+                helm uninstall qa-${params.CLIENT_NAME}
+                """
             }
         }
-        stage('Push Image pour prod') {
+	stage('Push of the final image') {
             environment {
                 DOCKER_ID = credentials("DOCKER_HUB_ID")
                 DOCKER_PASS = credentials("DOCKER_HUB_PASS")
             }
             steps {
-                sh '''
-                docker login -u $DOCKER_ID -p $DOCKER_PASS
-                docker tag localhost:5000/$DOCKER_IMAGE:latest $DOCKER_ID/$DOCKER_IMAGE:$DOCKER_TAG
-                docker tag $DOCKER_ID/$DOCKER_IMAGE:$DOCKER_TAG $DOCKER_ID/$DOCKER_IMAGE:latest
-                docker push $DOCKER_ID/$DOCKER_IMAGE:$DOCKER_TAG
-                docker push $DOCKER_ID/$DOCKER_IMAGE:latest
-                '''
+                script {
+                    sh """
+		    docker login -u ${DOCKER_ID} -p $DOCKER_PASS
+                    docker tag localhost:5000/${DOCKER_IMAGE}:qa-${params.CLIENT_NAME} ${DOCKER_ID}/${DOCKER_IMAGE}-${params.CLIENT_NAME}:latest
+		    docker tag ${DOCKER_ID}/${DOCKER_IMAGE}-${params.CLIENT_NAME}:latest ${DOCKER_ID}/${DOCKER_IMAGE}-${params.CLIENT_NAME}:${params.DOCKER_TAG}
+                    docker push ${DOCKER_ID}/${DOCKER_IMAGE}-${params.CLIENT_NAME}:latest
+                    docker push ${DOCKER_ID}/${DOCKER_IMAGE}-${params.CLIENT_NAME}:${params.DOCKER_TAG}
+                    sleep 10
+                    """
+                }
             }
         }
-        stage('Demontage Env Dev') {
+	stage('Mise en Production') {
             environment {
-                KUBECONFIG = credentials("confkub")
+                CLUSTERNAME = credentials("cluster")
             }
             steps {
-                sh '''
-                rm -Rf .kube
-                mkdir .kube
-                ls
-                cat $KUBECONFIG > .kube/config
-                helm uninstall petclinic-dev 
-                '''
+                withCredentials([[
+                $class: 'AmazonWebServicesCredentialsBinding',
+                  credentialsId: "kube-admin",
+                  accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                  secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                  sh """
+                  ${JENK_TOOLBOX}/ctrl/updatePod-gateway.sh ${CLUSTERNAME} petclinic-${params.CLIENT_NAME}
+                  """
+                }
             }
-        }
-	stage('Lancement des Personnalisations par clients') {
-    	steps {
-        	script {
-            		def csvFile = readFile(env.CSV_FILE)
-            		def csvLines = csvFile.split('\n')
-            		csvLines.each { line ->
-                		def params = line.split(';')
-                		def clientName = params[0].trim()
-                		def hexCode = params[1].trim()
-                		def nodePort = params[2].trim()
-                		def displayName = "${clientName}-${JMETER_TAG}-${DOCKER_TAG}"
-                		def description = "Build trigger by the job ${JOB_NAME}  On the microservice ${DOCKER_IMAGE}-${DOCKER_TAG} for the customer ${clientName}"
-                		echo "Job custom client launch for : clientName=${clientName} Parameters hexCode=${hexCode}, nodePort=${nodePort}"
-                		def triggeredBuild = build job: 'api-gateway-client', parameters: [
-                    			string(name: 'CLIENT_NAME', value: clientName),
-                    			string(name: 'HEX_CODE', value: hexCode),
-                    			string(name: 'NODE_PORT', value: nodePort),
-                    			string(name: 'DOCKER_TAG', value: DOCKER_TAG),
-					string(name: 'DISPLAY_NAME', value: displayName),
-                    			string(name: 'DESCRIPTION', value: description)
-                		], wait: false
-            	    }
-		}
-	    }
         }
     }
 }

@@ -57,7 +57,7 @@ pipeline {
             }
             steps {
                 sh """
-                ${JENK_TOOLBOX}/ctrl/checkNamespaceUse.sh developpement qa-${params.CLIENT_NAME}
+                ${JENK_TOOLBOX}/ctrl/checkNamespaceUse.sh qa-${params.CLIENT_NAME}
                 cp -r ${JENK_TOOLBOX}/helm/* ./
                 rm -Rf .kube
                 mkdir .kube
@@ -68,13 +68,24 @@ pipeline {
                 """
             }
         }
-        stage('Test access client') {
+        stage('Test des pods') {
             steps {
                 script {
-                    sh """
-		    ${JENK_TOOLBOX}/ctrl/checkpod.sh qa-${params.CLIENT_NAME}
+		    sh """	
+                    $JENK_TOOLBOX/ctrl/checkpod.sh qa-${params.CLIENT_NAME}
 		    curl localhost:${params.NODE_PORT}
 		    """
+                }
+            }
+            post {
+                failure {
+                    sh '''
+                    rm -Rf .kube
+                    mkdir .kube
+                    ls
+                    cat $KUBECONFIG > .kube/config
+                    helm uninstall petclinic-dev
+                    '''
                 }
             }
         }
@@ -94,6 +105,7 @@ pipeline {
         }
 	stage('Push of the final image') {
             environment {
+                DOCKER_ID = credentials("DOCKER_HUB_ID")
                 DOCKER_PASS = credentials("DOCKER_HUB_PASS")
             }
             steps {
@@ -120,9 +132,9 @@ pipeline {
                   accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                   secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
-                  sh '''
-                  $JENK_TOOLBOX/ctrl/updatePod-gateway.sh $CLUSTERNAME petclinic-${params.CLIENT_NAME}
-                  '''
+                  sh """
+                  ${JENK_TOOLBOX}/ctrl/updatePod-gateway.sh ${CLUSTERNAME} petclinic-${params.CLIENT_NAME}
+                  """
                 }
             }
         }

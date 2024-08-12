@@ -82,7 +82,6 @@ variable "private_subnet_az2" {
 }
 
 
-# !!! Full these parameters by using the init-var.sh
 
 # AWS id param
 

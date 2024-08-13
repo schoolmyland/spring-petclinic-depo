@@ -16,6 +16,9 @@ The plan is divvied on 4 modules:
 <b>ROUTE53 :</b> create the hosted zone, create the AWS ACM certificate for each front. Create the CNAME record to validate those record.
 
 
+<b>Plan of the infrastructure deployed by this code :</b>
+
+![planInfra](plan.jpg)
 
 <b>To use this plan, you have to export this list of variables :</b>
 

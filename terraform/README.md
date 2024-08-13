@@ -16,7 +16,9 @@ The plan is divvied on 4 modules:
 <b>ROUTE53 :</b> create the hosted zone, create the AWS ACM certificate for each front. Create the CNAME record to validate those record.
 
 
-</b>To use this plan, you have to export this list of variables :</b>
+
+<b>To use this plan, you have to export this list of variables :</b>
+
 
 <b>The account used to create the infrastructure </b>
 
@@ -32,7 +34,6 @@ TF_VAR_account_id
 TF_VAR_operator_account
 
 
-
 <b>Parameters for the RDS database of the first customer </b>
 
 TF_VAR_cus1db_name
@@ -40,7 +41,6 @@ TF_VAR_cus1db_name
 TF_VAR_cus1db_user
 
 TF_VAR_cus1db_mdp
-
 
 
 <b>Parameters for the RDS database of the second customer </b> 

@@ -38,7 +38,7 @@ Smtp_Grafana_pwd
 
 
 
-After exporting this list of variable you can use the script like : "install-monitoring.sh %pass-of-your-grafana-admin% "
+After exporting the variables you can use the script like : "install-monitoring.sh %pass-of-your-grafana-admin% "
 
 <b>Remember that after the first setup the password for the Grafana admin user cannot be changed by the script but only on the user interface.  </b>
  

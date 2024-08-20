@@ -1,7 +1,7 @@
 #!/bin/bash
 
 aws eks update-kubeconfig --region eu-west-3 --name $1
-cp ~/.kube/config .kube/config
+cp /etc/rancher/k3s/k3s.yaml .kube/config
 
 
 if [ $? -ne 0 ]; then

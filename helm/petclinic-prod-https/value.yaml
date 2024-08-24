@@ -1,4 +1,4 @@
-namespace: developpement
+namespace: petclinic-nomClient
 fulldomain : "example.petclinic-soutenance.com"
 certarn : "arncert"
 
